@@ -1,19 +1,17 @@
-from fastapi import Body, APIRouter, status, HTTPException
-from pydantic import BaseModel, BeforeValidator, Field
-from typing import Annotated, List, Optional
-from bson import ObjectId
-from pymongo import ReturnDocument
-from bson.errors import InvalidId
+from typing import List, Optional
 
+from fastapi import Body, APIRouter, Security, status, HTTPException
+from pydantic import BaseModel, Field
+
+from app.auth import CurrentUserIdAdmin, get_current_authorized_user_id
 from app.db import DBDependency
+from app.utils import PyObjectId, parse_object_id
 
 
 router = APIRouter(
     prefix="/products",
     tags=["products"],
 )
-
-PyObjectId = Annotated[str, BeforeValidator(str)]
 
 
 class Product(BaseModel):
@@ -33,20 +31,17 @@ class ProductList(BaseModel):
     products: List[Product]
 
 
-def parse_object_id(id_str):
-    try:
-        return ObjectId(id_str)
-    except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid ObjectId {id_str}")
-
-
 @router.post(
     "/",
     response_model=Product,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_product(db: DBDependency, product: Product = Body(...)):
+async def create_product(
+    db: DBDependency,
+    current_user_id: CurrentUserIdAdmin,
+    product: Product = Body(...),
+):
     result = await db.products.insert_one(product.model_dump())
     return await db.products.find_one({"_id": result.inserted_id})
 
@@ -82,7 +77,10 @@ async def get_product(db: DBDependency, product_id: str):
     response_model_by_alias=False,
 )
 async def patch_product(
-    db: DBDependency, product_id: str, product: ProductUpdate = Body(...)
+    db: DBDependency,
+    current_user_id: CurrentUserIdAdmin,
+    product_id: str,
+    product: ProductUpdate = Body(...),
 ):
     parsed_product_id = parse_object_id(product_id)
     product_dict = product.model_dump(by_alias=True)
@@ -111,7 +109,9 @@ async def patch_product(
     "/{product_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_product(db: DBDependency, product_id: str):
+async def delete_product(
+    db: DBDependency, current_user_id: CurrentUserIdAdmin, product_id: str
+):
     parsed_product_id = parse_object_id(product_id)
     result = await db.products.delete_one({"_id": parsed_product_id})
     if result.deleted_count == 1:
