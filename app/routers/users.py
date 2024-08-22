@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from pymongo.errors import DuplicateKeyError
 
 from app.db import DBDependency
-from app.utils import PyObjectId, parse_object_id
+from app.utils import PyObjectId, parse_object_id, pagination_parameters
 from app.auth import (
     CurrentUserIdAdmin,
     CurrentUserIdMe,
@@ -53,6 +53,9 @@ class UpdateUserData(BaseModel):
 
 
 class UserList(BaseModel):
+    skip: int
+    limit: int
+    total_results: int
     users: List[User]
 
 
@@ -111,14 +114,15 @@ async def create_user(db: DBDependency, user_data: CreateUserData = Body(...)):
 async def list_users(
     db: DBDependency,
     current_user_id: CurrentUserIdAdmin,
+    pagination: Annotated[dict, Depends(pagination_parameters)],
 ):
-    cursor = db.users.find()
-    return {"users": await cursor.to_list(length=100)}
-
-
-@router.delete("/")
-async def clear_users(db: DBDependency):
-    await db.users.delete_many({})
+    total_results = await db.users.count_documents({})
+    cursor = db.users.find({}).skip(pagination["skip"]).limit(pagination["limit"])
+    return {
+        **pagination,
+        "total_results": total_results,
+        "users": await cursor.to_list(length=pagination["limit"]),
+    }
 
 
 async def get_user_from_db(db, user_id: ObjectId):
@@ -157,6 +161,7 @@ async def get_user(
 
 
 async def delete_user_from_db(db, user_id: ObjectId):
+    cart_result = await db.carts.delete_many({"user_id": user_id})
     result = await db.users.delete_one({"_id": user_id})
     if result.deleted_count == 1:
         return
@@ -196,12 +201,10 @@ async def update_user_in_db(db, user_id: ObjectId, update_user_data: UpdateUserD
         field: user_dict[field] for field in user_dict if user_dict[field] is not None
     }
 
-    print(user_update)
     if "password" in user_update:
         password = user_update.pop("password")
         user_update["hashed_password"] = get_password_hash(password)
 
-    print(user_update)
     if user_update:
         await db.users.find_one_and_update(
             {"_id": user_id},
