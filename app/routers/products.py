@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from bson import ObjectId
 from fastapi import Body, APIRouter, Security, status, HTTPException
 from pydantic import BaseModel, Field
 
@@ -56,6 +57,14 @@ async def list_products(db: DBDependency):
     return ProductList(products=await cursor.to_list(length=100))
 
 
+async def get_product_from_db(db, product_id: ObjectId):
+    if product := await db.products.find_one({"_id": product_id}):
+        return product
+    raise HTTPException(
+        status_code=404, detail=f"Product with id '{str(product_id)}' not found"
+    )
+
+
 @router.get(
     "/{product_id}",
     response_model=Product,
@@ -63,12 +72,7 @@ async def list_products(db: DBDependency):
 )
 async def get_product(db: DBDependency, product_id: str):
     parsed_product_id = parse_object_id(product_id)
-    product = await db.products.find_one({"_id": parsed_product_id})
-    if product:
-        return product
-    raise HTTPException(
-        status_code=404, detail=f"Product with id '{product_id}' not found"
-    )
+    return await get_product_from_db(db, parsed_product_id)
 
 
 @router.patch(

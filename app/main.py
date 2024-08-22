@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth import Token, create_access_token, verify_password
 from app.db import DBDependency, ensure_indexes
-from app.routers import products, users
+from app.routers import products, users, carts
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,6 +18,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(products.router)
 app.include_router(users.router)
+app.include_router(carts.router)
 
 
 @app.post("/token")
