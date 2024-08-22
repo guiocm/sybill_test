@@ -6,7 +6,13 @@ from pydantic import BaseModel, Field
 from pymongo.errors import DuplicateKeyError
 
 from app.db import DBDependency
-from app.utils import PyObjectId, parse_object_id, pagination_parameters
+from app.utils import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND,
+    PyObjectId,
+    parse_object_id,
+    pagination_parameters,
+)
 from app.auth import (
     CurrentUserIdAdmin,
     CurrentUserIdMe,
@@ -85,6 +91,7 @@ def create_admin_permissions(db, user_id: ObjectId):
     response_model=CreateUserResponse,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
+    responses={400: {"description": "Username already exists"}},
 )
 async def create_user(db: DBDependency, user_data: CreateUserData = Body(...)):
     try:
@@ -110,6 +117,7 @@ async def create_user(db: DBDependency, user_data: CreateUserData = Body(...)):
     "/",
     response_model=UserList,
     response_model_by_alias=False,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 async def list_users(
     db: DBDependency,
@@ -138,6 +146,7 @@ async def get_user_from_db(db, user_id: ObjectId):
     "/me",
     response_model=User,
     response_model_by_alias=False,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 async def get_current_user(
     db: DBDependency,
@@ -150,6 +159,7 @@ async def get_current_user(
     "/{user_id}",
     response_model=User,
     response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def get_user(
     db: DBDependency,
@@ -174,6 +184,7 @@ async def delete_user_from_db(db, user_id: ObjectId):
 @router.delete(
     "/me",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 async def delete_current_user(
     db: DBDependency,
@@ -185,6 +196,7 @@ async def delete_current_user(
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def delete_user(
     db: DBDependency,
@@ -223,8 +235,9 @@ async def update_user_in_db(db, user_id: ObjectId, update_user_data: UpdateUserD
     "/me",
     response_model=User,
     response_model_by_alias=False,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
-async def patch_user(
+async def patch_current_user(
     db: DBDependency,
     user_id: CurrentUserIdMe,
     update_user_data: UpdateUserData = Body(...),
@@ -236,6 +249,7 @@ async def patch_user(
     "/{user_id}",
     response_model=User,
     response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def patch_user(
     db: DBDependency,

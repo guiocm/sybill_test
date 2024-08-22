@@ -7,6 +7,9 @@ from pydantic import BeforeValidator
 
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
+RESPONSE_401_UNAUTHORIZED = {401: {"description": "Unauthorized"}}
+RESPONSE_404_NOT_FOUND = {404: {"description": "Entity not found"}}
+
 
 def parse_object_id(id_str):
     try:

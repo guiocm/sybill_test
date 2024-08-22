@@ -7,7 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.auth import CurrentUserIdAdmin, CurrentUserIdMe, get_current_authorized_user_id
 from app.db import DBDependency
 from app.routers.products import get_product_from_db
-from app.utils import PyObjectId, parse_object_id
+from app.utils import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND,
+    PyObjectId,
+    parse_object_id,
+)
 
 
 router = APIRouter(
@@ -45,18 +50,29 @@ async def get_cart_from_db(db, user_id: ObjectId, cart_id: ObjectId):
     response_model=Cart,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 async def create_cart(db: DBDependency, current_user_id: CurrentUserIdMe):
     return await create_cart_in_db(db, current_user_id)
 
 
-@router.get("/{cart_id}", response_model=Cart, response_model_by_alias=False)
+@router.get(
+    "/{cart_id}",
+    response_model=Cart,
+    response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
+)
 async def get_cart(db: DBDependency, current_user_id: CurrentUserIdMe, cart_id: str):
     parsed_cart_id = parse_object_id(cart_id)
     return await get_cart_from_db(db, current_user_id, parsed_cart_id)
 
 
-@router.post("/{cart_id}/items", response_model=Cart, response_model_by_alias=False)
+@router.post(
+    "/{cart_id}/items",
+    response_model=Cart,
+    response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
+)
 async def add_item_to_cart(
     db: DBDependency,
     current_user_id: CurrentUserIdMe,
@@ -74,7 +90,10 @@ async def add_item_to_cart(
 
 
 @router.delete(
-    "/{cart_id}/items/{product_id}", response_model=Cart, response_model_by_alias=False
+    "/{cart_id}/items/{product_id}",
+    response_model=Cart,
+    response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def remove_item_from_cart(
     db: DBDependency,
@@ -97,7 +116,12 @@ async def remove_item_from_cart(
     return await get_cart_from_db(db, current_user_id, parsed_cart_id)
 
 
-@router.delete("/{cart_id}/items", response_model=Cart, response_model_by_alias=False)
+@router.delete(
+    "/{cart_id}/items",
+    response_model=Cart,
+    response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
+)
 async def clear_cart(
     db: DBDependency,
     current_user_id: CurrentUserIdMe,
@@ -114,6 +138,7 @@ async def clear_cart(
 @router.delete(
     "/{cart_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def delete_cart(
     db: DBDependency,

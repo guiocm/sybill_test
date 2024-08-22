@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 
 from fastapi import Depends
@@ -5,7 +6,7 @@ from motor import motor_asyncio
 import pymongo
 
 
-client = motor_asyncio.AsyncIOMotorClient("mongodb://admin:admin@localhost:27017")
+client = motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
 
 
 def get_db():

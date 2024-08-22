@@ -7,7 +7,13 @@ from pydantic import BaseModel, Field
 
 from app.auth import CurrentUserIdAdmin, get_current_authorized_user_id
 from app.db import DBDependency
-from app.utils import PyObjectId, pagination_parameters, parse_object_id
+from app.utils import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND,
+    PyObjectId,
+    pagination_parameters,
+    parse_object_id,
+)
 
 
 router = APIRouter(
@@ -58,6 +64,7 @@ class ProductList(BaseModel):
     response_model=Product,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 async def create_product(
     db: DBDependency,
@@ -125,6 +132,7 @@ async def get_product_from_db(db, product_id: ObjectId):
     "/{product_id}",
     response_model=Product,
     response_model_by_alias=False,
+    responses=RESPONSE_404_NOT_FOUND,
 )
 async def get_product(db: DBDependency, product_id: str):
     parsed_product_id = parse_object_id(product_id)
@@ -135,6 +143,7 @@ async def get_product(db: DBDependency, product_id: str):
     "/{product_id}",
     response_model=Product,
     response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def patch_product(
     db: DBDependency,
@@ -168,6 +177,7 @@ async def patch_product(
     "/{product_id}",
     response_model=Product,
     response_model_by_alias=False,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def put_product(
     db: DBDependency,
@@ -195,6 +205,7 @@ async def put_product(
 @router.delete(
     "/{product_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={**RESPONSE_401_UNAUTHORIZED, **RESPONSE_404_NOT_FOUND},
 )
 async def delete_product(
     db: DBDependency, current_user_id: CurrentUserIdAdmin, product_id: str
