@@ -82,11 +82,8 @@ async def get_current_authorized_user_id(
     security_scopes: SecurityScopes,
     permission_data: Annotated[PermissionData, Depends(get_current_permission_data)],
 ):
-    print(f"SCOPES {security_scopes.scopes}")
-    print(f"PERMISSIONS {permission_data.permissions}")
     for scope in security_scopes.scopes:
         if scope not in permission_data.permissions:
-            print(f"missed {scope}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User doesn't have necessary permissions",
